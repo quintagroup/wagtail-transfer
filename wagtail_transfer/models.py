@@ -27,8 +27,12 @@ def get_base_model(model):
     e.g. for BlogPage, return Page
     """
     if model._meta.parents:
-        model = model._meta.get_parent_list()[0]
-    return model
+        return_model = model._meta.get_parent_list()[0]
+        if  return_model.__name__ == 'BasePage':
+            return_model = model._meta.get_parent_list()[1]
+    else:
+        return_model = model
+    return return_model
 
 
 def get_model_for_path(model_path):
