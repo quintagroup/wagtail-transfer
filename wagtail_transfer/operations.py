@@ -1,3 +1,4 @@
+import logging
 import json
 from copy import copy
 
@@ -7,11 +8,15 @@ from django.db import models, transaction
 from django.utils.functional import cached_property
 from modelcluster.models import ClusterableModel, get_all_child_relations
 from treebeard.mp_tree import MP_Node
+from wagtail.images import get_image_model
 from wagtail.models import Page
 
 from .field_adapters import adapter_registry
 from .locators import get_locator_for_model
 from .models import get_base_model, get_base_model_for_path, get_model_for_path
+
+
+logger = logging.getLogger(__name__)
 
 # Models which should be updated to their latest version when encountered in object references
 default_update_related_models = ['wagtailimages.image']
@@ -194,7 +199,7 @@ class ImportPlanner:
     def add_json(self, json_data):
         """
         Add JSON data to the import plan. The data is a dict consisting of:
-        'ids_for_import': a list of [source_id, model_classname] pairs for the set of objects
+        'ids_for_import': a list of [model_classname, source_id] pairs for the set of objects
             explicitly requested to be imported. (For example, in a page import, this is the set of
             descendant pages of the selected root page.)
         'mappings': a list of mappings between UIDs and the object IDs that exist on the source
@@ -332,12 +337,14 @@ class ImportPlanner:
         try:
             object_data = self.object_data_by_source[(model, source_id)]
         except KeyError:
-            # Cannot complete this task during this pass; request the missing object data,
-            # unless we've already tried that
+            logger.debug(f"Cannot complete {task} during this pass")
+            # request the missing object data, unless we've already tried that
             if (model, source_id) in self.really_missing_object_data:
                 # object data apparently doesn't exist on the source site either, so give up on
                 # this object entirely
+                logger.debug("Object data apparently doesn't exist on the source site either")
                 if action == 'create':
+                    logger.debug(f"Adding {model, source_id} to faile_creations")
                     self.failed_creations.add((model, source_id))
 
             else:
@@ -377,7 +384,10 @@ class ImportPlanner:
             else:  # action == 'update'
                 destination_id = self.context.destination_ids_by_source[(model, source_id)]
                 obj = specific_model.objects.get(pk=destination_id)
-                operation = UpdateModel(obj, object_data)
+                if specific_model is get_image_model():
+                    operation = UpdateImage(obj, object_data)
+                else:
+                    operation = UpdateModel(obj, object_data)
 
         if issubclass(specific_model, ClusterableModel):
             # Process child object relations for this item
@@ -542,14 +552,16 @@ class ImportPlanner:
 
                 # If everything is working properly, this should be a case we already encountered
                 # during task / objective solving and logged in failed_creations.
-                assert (dep_model, dep_source_id) in self.failed_creations
+                logger.debug(f"KeyError, no resolution for dependency found: {dep_model, dep_source_id, dep_is_hard}")
+                assert (dep_model, dep_source_id) in self.failed_creations, f"{dep_model, dep_source_id} not in failed_creations"
 
                 # Also, it should be a soft dependency, since we've eliminated unsatisfiable hard
                 # hard dependencies during _check_satisfiable.
-                assert not dep_is_hard
+                assert not dep_is_hard, "dependency is hard"
 
                 # Since this is a soft dependency, we can (and must!) leave it unsatisfied.
                 # Abandon this dependency and move on to the next in the list
+                logger.debug(f"Abandoning dependency: {dep_model, dep_source_id, dep_is_hard}")
                 continue
 
             if resolution is None:
@@ -680,6 +692,7 @@ class SaveOperationMixin:
             if adapter:
                 deps.update(adapter.get_dependencies(val))
 
+        logger.debug(f"Dependencies for creation (base_model_class, id, is_hard_dependency): {deps}")
         return deps
 
     def deletions(self, context):
@@ -691,7 +704,8 @@ class SaveOperationMixin:
             adapter = adapter_registry.get_field_adapter(field)
             if adapter:
                 deletions.update(adapter.get_object_deletions(self.instance, val, context))
-
+        if deletions:
+            logger.debug(f"Dependencies for deletion (base_model_class, id, is_hard_dependency): {deletions}")
         return deletions
 
 
@@ -760,6 +774,30 @@ class UpdateModel(SaveOperationMixin, Operation):
         self._populate_fields(context)
         self._save(context)
         self._populate_many_to_many_fields(context)
+
+
+class UpdateImage(UpdateModel):
+    """
+    Operation class to handle clearing existing renditions when an image is updated.
+
+    If an image's file changes, and we don't clear renditions generated from the old
+    file, outdated renditions may be shown to users.
+    """
+
+    def run(self, context):
+        super().run(context)
+        self._clear_renditions(context)
+
+    def _clear_renditions(self, context):
+        instance_file_hash = self.instance.get_file_hash()
+        for imported_file in context.imported_files_by_source_url.values():
+            if (
+                imported_file.file.name == self.instance.file.name
+                and imported_file.hash == instance_file_hash
+            ):
+                # This will cause Wagtail to purge the renditions cache also.
+                self.instance.renditions.all().delete()
+                break
 
 
 class DeleteModel(Operation):

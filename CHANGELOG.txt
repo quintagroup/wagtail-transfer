@@ -1,6 +1,22 @@
 Changelog
 =========
 
+0.9.3 (15.11.2023)
+~~~~~~~~~~~~~~~~~~
+
+ * Apply Wagtail 5.2 upgrade considerations (Katherine Domingo)
+ * Fix deprecated UserPagePermissionsProxy / get_explorable_root_page imports in advance of Wagtail 6.0 (Matt Westcott)
+
+
+0.9.2 (02.11.2023)
+~~~~~~~~~~~~~~~~~~
+
+ * Dropped support for Python 3.7 (Nick Moreton, Katherine Domingo)
+ * Wagtail 5.1 update (https://github.com/wagtail/wagtail-transfer/pull/150) (Nick Moreton)
+ * Wagtail 5.0 update (https://github.com/wagtail/wagtail-transfer/pull/148) (Katherine Domingo)
+ * Added debug logging (Eric Sherman)
+ * Clear existing image renditions if an import updates an image's file (Joshua Munn)
+
 
 0.9.1 (01.03.2023)
 ~~~~~~~~~~~~~~~~~~
