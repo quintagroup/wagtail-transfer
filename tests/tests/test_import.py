@@ -62,6 +62,35 @@ class TestImport(TestCase):
         cats = Category.objects.all()
         self.assertEqual(cats.count(), 2)
 
+    def test_import_model_with_model_mapping(self):
+        # Import Another Category with a mapping
+        data = """{
+            "ids_for_import": [
+                ["another_tests.another_category", -1]
+            ],
+            "mappings": [
+                ["another_tests.another_category", -1, "21111111-1111-1111-1111-111111111111"]
+            ],
+            "objects": [
+                {
+                    "model": "another_tests.another_category",
+                    "pk": -1,
+                    "fields": {
+                        "name": "Category Model Mapping Test Import",
+                        "colour": "red..ish?"
+                    }
+                }
+            ]
+        }"""
+
+        importer = ImportPlanner(model="another_tests.another_category")
+        importer.add_json(data)
+        importer.run()
+
+        cats = Category.objects.all()
+        self.assertEqual(cats.count(), 2)
+        self.assertEqual(cats.filter(name="Category Model Mapping Test Import").exists(), True)
+
 
     def test_import_pages(self):
         # make a draft edit to the homepage
@@ -94,6 +123,73 @@ class TestImport(TestCase):
                 },
                 {
                     "model": "tests.simplepage",
+                    "pk": 12,
+                    "parent_id": 1,
+                    "fields": {
+                        "title": "New home",
+                        "show_in_menus": false,
+                        "live": true,
+                        "slug": "home",
+                        "intro": "This is the updated homepage",
+                        "wagtail_admin_comments": []
+                    }
+                }
+            ]
+        }"""
+
+        importer = ImportPlanner(root_page_source_pk=12, destination_parent_id=None)
+        importer.add_json(data)
+        importer.run()
+
+        updated_page = SimplePage.objects.get(url_path='/home/')
+        self.assertEqual(updated_page.intro, "This is the updated homepage")
+        self.assertEqual(updated_page.title, "New home")
+        self.assertEqual(updated_page.draft_title, "New home")
+
+        # get_latest_revision (as used in the edit-page view) should also reflect the imported content
+        updated_page_revision = updated_page.get_latest_revision_as_object()
+        self.assertEqual(updated_page_revision.intro, "This is the updated homepage")
+        self.assertEqual(updated_page_revision.title, "New home")
+
+        created_page = SimplePage.objects.get(url_path='/home/imported-child-page/')
+        self.assertEqual(created_page.intro, "This page is imported from the source site")
+        # An initial page revision should also be created
+        self.assertTrue(created_page.get_latest_revision())
+        created_page_revision = created_page.get_latest_revision_as_object()
+        self.assertEqual(created_page_revision.intro, "This page is imported from the source site")
+
+
+    def test_import_pages_with_model_mapping(self):
+        # make a draft edit to the homepage
+        home = SimplePage.objects.get(slug='home')
+        home.title = "Draft home"
+        home.save_revision()
+
+        data = """{
+            "ids_for_import": [
+                ["another_wagtailcore.another_page", 12],
+                ["another_wagtailcore.another_page", 15]
+            ],
+            "mappings": [
+                ["another_wagtailcore.another_page", 12, "22222222-2222-2222-2222-222222222222"],
+                ["another_wagtailcore.another_page", 15, "55555555-5555-5555-5555-555555555555"]
+            ],
+            "objects": [
+                {
+                    "model": "another_tests.another_simplepage",
+                    "pk": 15,
+                    "parent_id": 12,
+                    "fields": {
+                        "title": "Imported child page",
+                        "show_in_menus": false,
+                        "live": true,
+                        "slug": "imported-child-page",
+                        "intro": "This page is imported from the source site",
+                        "wagtail_admin_comments": []
+                    }
+                },
+                {
+                    "model": "another_tests.another_simplepage",
                     "pk": 12,
                     "parent_id": 1,
                     "fields": {
