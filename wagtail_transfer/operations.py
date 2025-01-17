@@ -3,6 +3,7 @@ import json
 from copy import copy
 
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ImproperlyConfigured
 from django.db import models, transaction
 from django.utils.functional import cached_property
@@ -34,6 +35,8 @@ NO_FOLLOW_MODELS = [
     model_label.lower()
     for model_label in getattr(settings, 'WAGTAILTRANSFER_NO_FOLLOW_MODELS', default_no_follow_models)
 ]
+
+SKIP_NON_EXISTED_MODELS = getattr(settings, 'WAGTAILTRANSFER_SKIP_NON_EXISTED_MODELS', False)
 
 
 class CircularDependencyException(Exception):
@@ -224,7 +227,12 @@ class ImportPlanner:
         # add source id -> uid mappings to the uids_by_source dict, and add objectives 
         # for importing referenced models
         for model_path, source_id, jsonish_uid in data['mappings']:
-            model = get_base_model_for_path(model_path)
+            try:
+                model = get_base_model_for_path(model_path)
+            except ContentType.DoesNotExist as e:
+                if SKIP_NON_EXISTED_MODELS:
+                    continue
+                raise e
             uid = get_locator_for_model(model).uid_from_json(jsonish_uid)
             self.context.uids_by_source[(model, source_id)] = uid
 
