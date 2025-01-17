@@ -249,6 +249,9 @@ class ImportPlanner:
 
         # add object data to the object_data_by_source dict
         for obj_data in data['objects']:
+            if obj_data['model'] in NO_FOLLOW_MODELS:
+                # we don't need to import this object, so don't bother adding it to the lookup
+                continue
             self._add_object_data_to_lookup(obj_data)
 
         # retry tasks that were previously postponed due to missing object data
