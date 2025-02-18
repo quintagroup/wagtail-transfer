@@ -38,6 +38,10 @@ NO_FOLLOW_MODELS = [
 
 SKIP_NON_EXISTED_MODELS = getattr(settings, 'WAGTAILTRANSFER_SKIP_NON_EXISTED_MODELS', False)
 
+FIELD_MAPPING = getattr(settings, 'WAGTAILTRANSFER_FIELD_MAPPING', {})
+
+IMPORT_RESOLVER_FUNC = getattr(settings, 'WAGTAILTRANSFER_IMPORT_RESOLVER_FUNC', None)
+
 
 class CircularDependencyException(Exception):
     pass
@@ -586,7 +590,11 @@ class ImportPlanner:
                 # an exception to be propagated back up the chain until we're back to a caller that
                 # can handle it gracefully - namely, a soft dependency that can be left
                 # unsatisfied.
-                raise CircularDependencyException()
+                if IMPORT_RESOLVER_FUNC:
+                    from django.utils.module_loading import import_string
+                    import_string(IMPORT_RESOLVER_FUNC)(self, resolution, operation_order, path)
+                else:
+                    raise CircularDependencyException()
             else:
                 try:
                     # recursively add the operation that we're depending on here
@@ -632,6 +640,14 @@ class Operation:
         return set()
 
 
+def get_mapped_field_name(model_name, field):
+    if not model_name in FIELD_MAPPING.keys():
+        return field.name
+    if field.name in FIELD_MAPPING[model_name].keys():
+        return FIELD_MAPPING[model_name][field.name]
+    return field.name
+
+
 class SaveOperationMixin:
     """
     Mixin class to handle the common logic of CreateModel and UpdateModel operations, namely:
@@ -650,8 +666,8 @@ class SaveOperationMixin:
     def _populate_fields(self, context):
         for field in self.model._meta.get_fields():
             try:
-                value = self.object_data['fields'][field.name]
-            except KeyError:
+                value = self.object_data['fields'][get_mapped_field_name(self.model._meta.label_lower, field)]
+            except KeyError as e:
                 continue
 
             adapter = adapter_registry.get_field_adapter(field)
@@ -668,7 +684,7 @@ class SaveOperationMixin:
         for field in self.model._meta.get_fields():
             if isinstance(field, models.ManyToManyField):
                 try:
-                    value = self.object_data['fields'][field.name]
+                    value = self.object_data['fields'][get_mapped_field_name(self.model._meta.label_lower, field)]
                 except KeyError:
                     continue
                 target_model = get_base_model(field.related_model)
@@ -698,7 +714,7 @@ class SaveOperationMixin:
         deps = super().dependencies
 
         for field in self.model._meta.get_fields():
-            val = self.object_data['fields'].get(field.name)
+            val = self.object_data['fields'].get(get_mapped_field_name(self.model._meta.label_lower, field))
             adapter = adapter_registry.get_field_adapter(field)
             if adapter:
                 deps.update(adapter.get_dependencies(val))
@@ -711,7 +727,7 @@ class SaveOperationMixin:
 
         deletions = super().deletions(context)
         for field in self.model._meta.get_fields():
-            val = self.object_data['fields'].get(field.name)
+            val = self.object_data['fields'].get(get_mapped_field_name(self.model._meta.label_lower, field))
             adapter = adapter_registry.get_field_adapter(field)
             if adapter:
                 deletions.update(adapter.get_object_deletions(self.instance, val, context))

@@ -113,6 +113,8 @@ class StreamBlockHandler(BaseBlockHandler):
         updated_stream = []
         for element in stream:
             new_block = self.block.child_blocks.get(element['type'])
+            if not new_block:
+                continue
             new_block_handler = get_block_handler(new_block)
             new_stream = element['value']
             try:
