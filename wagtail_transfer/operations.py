@@ -42,6 +42,8 @@ FIELD_MAPPING = getattr(settings, 'WAGTAILTRANSFER_FIELD_MAPPING', {})
 
 IMPORT_RESOLVER_FUNC = getattr(settings, 'WAGTAILTRANSFER_IMPORT_RESOLVER_FUNC', None)
 
+IS_SAVE_DRAFT = getattr(settings, 'WAGTAILTRANSFER_IS_SAVE_DRAFT', False)
+
 
 class CircularDependencyException(Exception):
     pass
@@ -494,7 +496,7 @@ class ImportPlanner:
             # they will capture outdated versions of child objects in the revision
             for operation in operation_order:
                 if isinstance(operation.instance, Page):
-                    operation.instance.save_revision()
+                    operation.instance.save_revision(log_action=True)
 
 
     def _check_satisfiable(self, operation, statuses):
@@ -706,7 +708,10 @@ class SaveOperationMixin:
             self.instance.save()
 
     def _save(self, context):
-        self.instance.save()
+        if IS_SAVE_DRAFT:
+            self.instance.save_revision(log_action=True)
+        else:
+            self.instance.save()
 
     @cached_property
     def dependencies(self):
