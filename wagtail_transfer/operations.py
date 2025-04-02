@@ -709,7 +709,10 @@ class SaveOperationMixin:
 
     def _save(self, context):
         if IS_SAVE_DRAFT:
-            self.instance.save_revision(log_action=True)
+            try:
+                self.instance.save_revision(log_action=True)
+            except AttributeError:
+                self.instance.save()
         else:
             self.instance.save()
 
