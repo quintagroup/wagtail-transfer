@@ -196,13 +196,15 @@ def chooser_api_proxy(request, source_name, path):
         default_chooser_endpoint = 'models'
 
     base_url = source_config['BASE_URL'] + 'api/chooser/{}/'.format(default_chooser_endpoint)
+    headers = source_config.get('HEADERS', {})
 
     message = request.GET.urlencode()
     digest = digest_for_source(source_name, message)
 
-    response = requests.get(f"{base_url}{path}?{message}&digest={digest}", headers={
-        'Accept': request.META['HTTP_ACCEPT'],
-    }, timeout=api_proxy_timeout_seconds)
+    headers['Accept'] = request.META['HTTP_ACCEPT']
+    response = requests.get(
+        f"{base_url}{path}?{message}&digest={digest}", headers=headers, timeout=api_proxy_timeout_seconds
+    )
 
     return HttpResponse(response.content, status=response.status_code)
 
@@ -225,6 +227,7 @@ def choose_page(request):
 
 def import_missing_object_data(source, importer: ImportPlanner):
     base_url = settings.WAGTAILTRANSFER_SOURCES[source]['BASE_URL']
+    headers = settings.WAGTAILTRANSFER_SOURCES[source].get('HEADERS', {})
     while importer.missing_object_data:
         # convert missing_object_data from a set of (model_class, id) tuples
         # into a dict of {model_class_label: [list_of_ids]}
@@ -240,7 +243,7 @@ def import_missing_object_data(source, importer: ImportPlanner):
 
         # request the missing object data and add to the import plan
         response = requests.post(
-            f"{base_url}api/objects/", params={'digest': digest}, data=request_data
+            f"{base_url}api/objects/", params={'digest': digest}, data=request_data, headers=headers
         )
         importer.add_json(response.content)
     importer.run()
@@ -251,8 +254,11 @@ def import_page(request):
     source = request.POST['source']
     base_url = settings.WAGTAILTRANSFER_SOURCES[source]['BASE_URL']
     digest = digest_for_source(source, str(request.POST['source_page_id']))
+    headers = settings.WAGTAILTRANSFER_SOURCES[source].get('HEADERS', {})
 
-    response = requests.get(f"{base_url}api/pages/{request.POST['source_page_id']}/", params={'digest': digest})
+    response = requests.get(
+        f"{base_url}api/pages/{request.POST['source_page_id']}/", params={'digest': digest}, headers=headers
+    )
 
     dest_page_id = request.POST['dest_page_id'] or None
     importer = ImportPlanner.for_page(source=request.POST['source_page_id'], destination=dest_page_id)
@@ -270,13 +276,14 @@ def import_model(request):
     model = request.POST['source_model']
     base_url = settings.WAGTAILTRANSFER_SOURCES[source]['BASE_URL']
     digest = digest_for_source(source, model)
+    headers = settings.WAGTAILTRANSFER_SOURCES[source].get('HEADERS', {})
 
     url = f"{base_url}api/models/{model}/"
     if request.POST.get("source_model_object_id"):
         source_model_object_id = request.POST.get("source_model_object_id")
         url = f"{url}{source_model_object_id}/"
 
-    response = requests.get(url, params={'digest': digest})
+    response = requests.get(url, params={'digest': digest}, headers=headers)
     importer = ImportPlanner.for_model(model=model)
     importer.add_json(response.content)
     importer = import_missing_object_data(source, importer)
