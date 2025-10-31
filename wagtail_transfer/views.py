@@ -17,7 +17,7 @@ from wagtail.models import Page
 
 from .auth import check_digest, digest_for_source
 from .locators import get_locator_for_model
-from .models import get_model_for_path
+from .models import get_model_for_path, get_model_mapping_config
 from .operations import ImportPlanner
 from .serializers import serializer_registry
 from .vendor.wagtail_admin_api.serializers import AdminPageSerializer
@@ -250,6 +250,28 @@ def import_missing_object_data(source, importer: ImportPlanner):
     return importer
 
 
+def is_slug_available(request, json_data):
+    data = json.loads(json_data)
+    source_page_id = int(request.POST['source_page_id'])
+    dest_page_id = request.POST['dest_page_id'] or None
+
+    model_mapping = get_model_mapping_config()
+    slug = next((item["fields"].get("slug") for item in data["objects"] if item["model"] in model_mapping and item["pk"] == source_page_id), "")
+    error_msg = f"The slug '{slug}' is already in use at the selected parent page. Make sure the slug is unique and try again."
+
+    if dest_page_id:
+        parent_page = Page.objects.filter(id=dest_page_id).first()
+        page = None
+    else:
+        uid = next((item[2] for item in data["mappings"] if item[0] == "wagtailcore.page" and item[1] == source_page_id), "")
+        page = get_locator_for_model(Page).find(uid)
+        parent_page = page.get_parent() if page else None
+    
+    if parent_page and slug:
+        return Page._slug_is_available(slug, parent_page, page), error_msg
+    return True, error_msg
+
+
 def import_page(request):
     source = request.POST['source']
     base_url = settings.WAGTAILTRANSFER_SOURCES[source]['BASE_URL']
@@ -259,6 +281,11 @@ def import_page(request):
     response = requests.get(
         f"{base_url}api/pages/{request.POST['source_page_id']}/", params={'digest': digest}, headers=headers
     )
+
+    slug_available, slug_error_msg = is_slug_available(request, response.content)
+    if not slug_available:
+        messages.error(request, slug_error_msg)
+        return redirect("wagtail_transfer_admin:choose_page")
 
     dest_page_id = request.POST['dest_page_id'] or None
     importer = ImportPlanner.for_page(source=request.POST['source_page_id'], destination=dest_page_id)
