@@ -98,7 +98,6 @@ PASSWORD_HASHERS = (
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
-USE_L10N = True
 USE_TZ = True
 
 
@@ -130,6 +129,13 @@ WAGTAILTRANSFER_SOURCES = {
         'BASE_URL': 'http://localhost/wagtail-transfer/',
         'SECRET_KEY': 'i-am-the-local-secret-key',
     }
+}
+WAGTAILTRANSFER_SOURCES_BASIC_AUTH = {
+    'staging': {
+        'BASE_URL': 'https://www.example.com/wagtail-transfer/',
+        'SECRET_KEY': 'i-am-the-staging-example-secret-key',
+        'BASIC_AUTH_SECRET': ('staging-user', 'staging-pass'),
+    },
 }
 
 WAGTAILTRANSFER_FOLLOWED_REVERSE_RELATIONS = [('wagtailimages.image', 'tagged_items', True), ('tests.advert', 'tagged_items', True)]

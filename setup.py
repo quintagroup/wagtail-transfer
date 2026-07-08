@@ -4,7 +4,7 @@ from setuptools import find_packages, setup
 
 setup(
     name='wagtail-transfer',
-    version='0.9.3.6',
+    version='0.11',
     description="Content transfer for Wagtail",
     author='Matthew Westcott',
     author_email='matthew.westcott@torchbox.com',
@@ -12,7 +12,7 @@ setup(
     packages=find_packages(exclude=('tests',)),
     include_package_data=True,
     install_requires=[
-        'wagtail>=4.1'
+        'wagtail>=5.2'
     ],
     extras_require={
         'docs': [
@@ -20,7 +20,7 @@ setup(
             'mkdocs-material>=4.6,<4.7',
         ],
     },
-    python_requires=">=3.7",
+    python_requires=">=3.9",
     license='BSD',
     long_description="An extension for Wagtail allowing content to be transferred between multiple instances of a Wagtail project",
     classifiers=[
@@ -31,14 +31,17 @@ setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
         'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.13',
         'Framework :: Django',
+        'Framework :: Django :: 4.2',
+        'Framework :: Django :: 5.1',
+        'Framework :: Django :: 5.2',
         'Framework :: Wagtail',
-        'Framework :: Wagtail :: 4',
-        'Framework :: Wagtail :: 5',
+        'Framework :: Wagtail :: 6',
+        'Framework :: Wagtail :: 7',
     ],
 )
