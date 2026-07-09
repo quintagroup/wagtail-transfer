@@ -80,9 +80,11 @@ class ModelChooserResultSet extends React.Component {
               <th className="title">Snippet Name</th>
               <th />
             </tr>
-            {parent}
           </thead>
-          <tbody>{results}</tbody>
+          <tbody>
+            {parent}
+            {results}
+          </tbody>
         </table>
       </div>
     );

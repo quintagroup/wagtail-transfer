@@ -57,37 +57,36 @@ class PageChooserHeader extends React.Component {
           <div className="left">
             <div className="col">
               <h1 className="w-header__title" id="header-title">
-                <span className="icon-wrapper">
-                  <svg className="icon icon-doc-empty-inverse w-header__glyph" aria-hidden="true">
-                    <use href="#icon-doc-empty-inverse"></use>
-                  </svg>
-                </span>
+                <svg className="icon icon-doc-empty-inverse w-header__glyph" aria-hidden="true">
+                  <use href="#icon-doc-empty-inverse"></use>
+                </svg>
                 {!searchTitle ? 'Choose a page' : searchTitle}
               </h1>
             </div>
-            <form className="col search-form" noValidate={true}>
-              <ul className="fields">
-                <li className="required">
-                  <div className="field char_field text_input field-small iconfield">
-                    <label htmlFor="id_q">Search term:</label>
-                    <div className="field-content">
-                      <div>
-                        <input
-                          onChange={this.handleInputChange}
-                          value={searchValue}
-                          placeholder="Search"
-                          type="text"
-                          disabled={!searchEnabled}
-                        />
-                        <span />
-                      </div>
-                    </div>
+            <form className="col search-form" role="search" noValidate={true}>
+              <div className="w-field__wrapper w-mb-0 -w-mt-2.5" data-field-wrapper>
+                <label className="w-field__label w-sr-only" htmlFor="id_q">
+                  Search term
+                </label>
+                <div className="w-field w-field--char_field w-field--text_input" data-field>
+                  <div className="w-field__input" data-field-input>
+                    <svg className="icon icon-search w-field__icon" aria-hidden="true">
+                      <use href="#icon-search"></use>
+                    </svg>
+                    <input
+                      onChange={this.handleInputChange}
+                      value={searchValue}
+                      placeholder="Search…"
+                      type="text"
+                      id="id_q"
+                      disabled={!searchEnabled}
+                    />
                   </div>
-                </li>
-                <li className="submit visuallyhidden">
-                  <input value="Search" className="button" type="submit" />
-                </li>
-              </ul>
+                </div>
+              </div>
+              <div className="w-sr-only">
+                <input value="Search" className="button" type="submit" />
+              </div>
             </form>
           </div>
           <div className="right" />

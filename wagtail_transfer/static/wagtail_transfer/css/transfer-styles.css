@@ -6,10 +6,20 @@
     height: 3em;
 }
 
-.transfer.button.button-secondary.bicolor::before {
+/*
+ * Wagtail 7 moved the bicolor button's icon box from a ::before pseudo-element
+ * to a real .icon-wrapper span, so the old ::before override above no longer
+ * has anything to style. Target the real element instead.
+ */
+.transfer.button.button-secondary.bicolor .icon-wrapper {
     background-color: #00676a;
     color: #fff;
-    border-radius: 0px;
+    border-radius: 0;
+    border-inline-end: none;
+}
+
+.transfer.button.button-secondary.bicolor:hover .icon-wrapper {
+    background-color: #00676a;
 }
 
 .transfer.chooser.page-chooser .unchosen::before {
@@ -92,6 +102,11 @@ li.transfer.numbered::before {
 
 .transfer.list-container {
     display: inline-block;
+    margin-inline-end: 0.75em;
+}
+
+.w-breadcrumbs {
+    margin-bottom: 1em;
 }
 
 .transfer.button.close {

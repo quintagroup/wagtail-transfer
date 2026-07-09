@@ -76,17 +76,13 @@ class PageChooserPagination extends React.Component {
     const { totalPages, pageNumber } = this.props;
 
     return (
-      <div className="pagination">
-        {totalPages > 1 ? (
-          <div>
-            <p>{`Page ${pageNumber} of ${totalPages}.`}</p>
-            <ul>
-              {this.renderPrev()}
-              {this.renderNext()}
-            </ul>
-          </div>
-        ) : null}
-      </div>
+      <nav className="pagination" aria-label="Pagination">
+        <p>{`Page ${pageNumber} of ${totalPages}.`}</p>
+        <ul>
+          {this.renderPrev()}
+          {this.renderNext()}
+        </ul>
+      </nav>
     );
   }
 }

@@ -44,11 +44,7 @@ function SubmitButton({ onClick, disabled, numPages, importingModel }) {
   }
 
   return (
-    <button
-      className="button button-primary"
-      onClick={onClick}
-      disabled={disabled}
-    >
+    <button className="button" onClick={onClick} disabled={disabled}>
       {buttonText}
     </button>
   );

@@ -73,18 +73,17 @@ class ModelChooserPagination extends React.Component {
     const { nextPage, previousPage } = this.props;
     const showPagination = nextPage || previousPage ? true : false;
 
+    if (!showPagination) {
+      return null;
+    }
+
     return (
-      <div className="pagination">
-        {showPagination ? (
-          <div>
-            <p>&nbsp;</p> {/* TODO: Add `Page x of y.` */}
-            <ul>
-              {this.renderPrev()}
-              {this.renderNext()}
-            </ul>
-          </div>
-        ) : null}
-      </div>
+      <nav className="pagination" aria-label="Pagination">
+        <ul>
+          {this.renderPrev()}
+          {this.renderNext()}
+        </ul>
+      </nav>
     );
   }
 }

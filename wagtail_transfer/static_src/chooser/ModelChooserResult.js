@@ -61,7 +61,7 @@ class ModelChooserResult extends React.Component {
     const classNames = [];
 
     if (isParent) {
-      classNames.push('index');
+      classNames.push('parent-page');
     }
 
     return (

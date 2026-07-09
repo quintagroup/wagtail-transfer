@@ -125,9 +125,11 @@ class PageChooserResultSet extends React.Component {
               <th className="status">Status</th>
               <th />
             </tr>
-            {parent}
           </thead>
-          <tbody>{results}</tbody>
+          <tbody>
+            {parent}
+            {results}
+          </tbody>
         </table>
 
         <PageChooserPagination

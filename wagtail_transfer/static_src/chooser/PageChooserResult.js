@@ -62,12 +62,18 @@ class PageChooserResult extends React.Component {
 
       return (
         <td className="updated u-vertical-align-top">
-          <div
-            className="human-readable-date"
+          <button
+            type="button"
+            className="w-human-readable-date"
             title={updatedAt.format('D MMM YYYY h:mm a')}
           >
-            {updatedAt.fromNow()}
-          </div>
+            <time
+              className="w-human-readable-date__date"
+              dateTime={page.meta.latest_revision_created_at}
+            >
+              {updatedAt.fromNow()}
+            </time>
+          </button>
         </td>
       );
     }
@@ -134,7 +140,7 @@ class PageChooserResult extends React.Component {
     const classNames = [];
 
     if (isParent) {
-      classNames.push('index');
+      classNames.push('parent-page');
     }
 
     if (!page.meta.status.live) {
