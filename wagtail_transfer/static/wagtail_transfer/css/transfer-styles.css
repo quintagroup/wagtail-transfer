@@ -112,3 +112,13 @@ li.transfer.numbered::before {
 .transfer.button.close {
     color: var(--w-color-black);
 }
+
+/*
+ * Wagtail 7 dropped the default size from bare `svg.icon`; icons now get sized
+ * from a button/utility context. The chooser pagination arrows sit in a plain
+ * <a> with no such context, so they fall back to the SVG default (300x150).
+ */
+.pagination svg.icon.navigate-pages {
+    width: 1em;
+    height: 1em;
+}
