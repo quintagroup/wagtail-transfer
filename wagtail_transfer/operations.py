@@ -497,8 +497,9 @@ class ImportPlanner:
             
             # pages must only have revisions saved after all child objects have been updated, imported, or deleted, otherwise
             # they will capture outdated versions of child objects in the revision
+            # (except aliases: Wagtail refuses revisions for them, as they mirror their original)
             for operation in operation_order:
-                if isinstance(operation.instance, Page):
+                if isinstance(operation.instance, Page) and not operation.instance.alias_of_id:
                     operation.instance.save_revision(log_action=True)
 
 
@@ -711,7 +712,8 @@ class SaveOperationMixin:
             self.instance.save()
 
     def _save(self, context):
-        if IS_SAVE_DRAFT:
+        # Alias pages can't have revisions (they mirror their original), so save them directly
+        if IS_SAVE_DRAFT and not getattr(self.instance, 'alias_of_id', None):
             try:
                 self.instance.save_revision(log_action=True)
             except AttributeError:

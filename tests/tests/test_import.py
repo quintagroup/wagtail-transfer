@@ -17,6 +17,7 @@ from tests.models import (Advert, Author, Avatar, Category, LongAdvert,
                           PageWithRelatedPages, PageWithRichText,
                           PageWithStreamField, RedirectPage, SectionedPage,
                           SimplePage, SponsoredPage)
+from wagtail_transfer.locators import get_locator_for_model
 from wagtail_transfer.models import IDMapping
 from wagtail_transfer.operations import ImportPlanner
 
@@ -160,6 +161,102 @@ class TestImport(TestCase):
         created_page_revision = created_page.get_latest_revision_as_object()
         self.assertEqual(created_page_revision.intro, "This page is imported from the source site")
 
+
+    def test_import_alias_page(self):
+        # Wagtail refuses revisions for alias pages, which mirror their original; a single
+        # alias in an import must not roll the whole import back.
+        data = """{
+            "ids_for_import": [
+                ["wagtailcore.page", 15],
+                ["wagtailcore.page", 16]
+            ],
+            "mappings": [
+                ["wagtailcore.page", 12, "22222222-2222-2222-2222-222222222222"],
+                ["wagtailcore.page", 15, "55555555-5555-5555-5555-555555555555"],
+                ["wagtailcore.page", 16, "66666666-6666-6666-6666-666666666666"]
+            ],
+            "objects": [
+                {
+                    "model": "tests.simplepage",
+                    "pk": 15,
+                    "parent_id": 12,
+                    "fields": {
+                        "title": "Original page",
+                        "show_in_menus": false,
+                        "live": true,
+                        "slug": "original-page",
+                        "intro": "Shared content",
+                        "wagtail_admin_comments": []
+                    }
+                },
+                {
+                    "model": "tests.simplepage",
+                    "pk": 16,
+                    "parent_id": 12,
+                    "fields": {
+                        "title": "Original page",
+                        "show_in_menus": false,
+                        "live": true,
+                        "slug": "original-page-alias",
+                        "intro": "Shared content",
+                        "alias_of": 15,
+                        "wagtail_admin_comments": []
+                    }
+                }
+            ]
+        }"""
+
+        importer = ImportPlanner(root_page_source_pk=12, destination_parent_id=None, source_site="staging")
+        importer.add_json(data)
+        importer.run()
+
+        original = SimplePage.objects.get(url_path='/home/original-page/')
+        alias = SimplePage.objects.get(url_path='/home/original-page-alias/')
+        self.assertEqual(alias.alias_of_id, original.id)
+        self.assertTrue(original.get_latest_revision())
+        self.assertIsNone(alias.get_latest_revision())
+
+    @mock.patch('wagtail_transfer.operations.IS_SAVE_DRAFT', True)
+    def test_update_alias_page_with_save_draft(self):
+        home = SimplePage.objects.get(slug='home')
+        original = home.add_child(instance=SimplePage(title="Original page", slug="original-page", intro="Shared"))
+        alias = original.create_alias(parent=home, update_slug="original-page-alias")
+        locator = get_locator_for_model(Page)
+        locator.attach_uid(original, "55555555-5555-5555-5555-555555555555")
+        locator.attach_uid(alias, "66666666-6666-6666-6666-666666666666")
+
+        data = """{
+            "ids_for_import": [["wagtailcore.page", 16]],
+            "mappings": [
+                ["wagtailcore.page", 12, "22222222-2222-2222-2222-222222222222"],
+                ["wagtailcore.page", 15, "55555555-5555-5555-5555-555555555555"],
+                ["wagtailcore.page", 16, "66666666-6666-6666-6666-666666666666"]
+            ],
+            "objects": [
+                {
+                    "model": "tests.simplepage",
+                    "pk": 16,
+                    "parent_id": 12,
+                    "fields": {
+                        "title": "Original page",
+                        "show_in_menus": false,
+                        "live": true,
+                        "slug": "original-page-alias",
+                        "intro": "Shared",
+                        "alias_of": 15,
+                        "wagtail_admin_comments": []
+                    }
+                }
+            ]
+        }"""
+
+        importer = ImportPlanner(root_page_source_pk=16, destination_parent_id=None, source_site="staging")
+        importer.add_json(data)
+        importer.run()
+
+        alias.refresh_from_db()
+        self.assertEqual(alias.alias_of_id, original.id)
+        self.assertIsNone(alias.get_latest_revision())
 
     def test_import_pages_with_model_mapping(self):
         # make a draft edit to the homepage
