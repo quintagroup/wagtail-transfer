@@ -51,6 +51,7 @@ function PageChooserSearchView(props) {
         onPageChosen={onPageChosen}
         onNavigate={onNavigate}
         onChangePage={onChangePage}
+        showPath
       />
     </div>
   );

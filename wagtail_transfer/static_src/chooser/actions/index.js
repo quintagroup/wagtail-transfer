@@ -105,7 +105,7 @@ export function search(queryString, restrictPageTypes, pageNumber) {
     const { api } = getState();
 
     let queryParams = {
-      fields: 'parent',
+      fields: 'parent,ancestors',
       search: queryString
     };
     if (restrictPageTypes) {

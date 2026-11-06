@@ -9,13 +9,15 @@ const propTypes = {
   onChoose: PropTypes.func.isRequired,
   onNavigate: PropTypes.func.isRequired,
   page: PropTypes.object.isRequired,
-  pageTypes: PropTypes.object
+  pageTypes: PropTypes.object,
+  showPath: PropTypes.bool
 };
 
 const defaultProps = {
   pageTypes: {},
   isNavigable: false,
-  isParent: false
+  isParent: false,
+  showPath: false
 };
 
 // Capitalizes first letter without making any other letters lowercase
@@ -24,6 +26,24 @@ function capitalizeFirstLetter(text) {
 }
 
 class PageChooserResult extends React.Component {
+  // Search results lose the browse header, so show where each page sits (pages with the
+  // same title are otherwise indistinguishable). Skips the tree root (id 1).
+  renderPath() {
+    const { page, showPath } = this.props;
+    const ancestors = (page.meta.ancestors || []).filter(a => a.id !== 1);
+
+    if (!showPath || !ancestors.length) {
+      return null;
+    }
+
+    return (
+      // Inherit the row colour (white on the teal hover row) and fade it, instead of a fixed grey.
+      <div className="w-text-14" style={{ opacity: 0.75 }}>
+        {ancestors.map(a => a.title).join(' › ')}
+      </div>
+    );
+  }
+
   renderTitle() {
     const { isChoosable, onChoose, page } = this.props;
 
@@ -43,6 +63,7 @@ class PageChooserResult extends React.Component {
               {page.title}
             </a>
           </h2>
+          {this.renderPath()}
         </td>
       );
     }
@@ -50,6 +71,7 @@ class PageChooserResult extends React.Component {
     return (
       <td className="title u-vertical-align-top" data-listing-page-title="">
         <h2>{page.title}</h2>
+        {this.renderPath()}
       </td>
     );
   }

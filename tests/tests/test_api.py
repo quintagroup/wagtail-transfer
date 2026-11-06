@@ -8,6 +8,7 @@ from unittest import mock
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.files import File
+from django.core.management import call_command
 from django.core.files.images import ImageFile
 from django.test import TestCase, override_settings
 from wagtail.documents.models import Document
@@ -40,6 +41,28 @@ class TestPageChooserApi(TestCase):
             f'/wagtail-transfer/api/chooser/pages/?child_of=root&fields=parent%2Cchildren&limit=20&offset=0&digest={digest}'
         )
         self.assertEqual(response.status_code, 200)
+
+
+class TestPageChooserSearchApi(TestCase):
+    fixtures = ['test.json']
+
+    def setUp(self):
+        # Fixtures bypass the signals that populate the search index.
+        call_command('update_index', verbosity=0)
+
+    def test_search_listing_includes_ancestors(self):
+        # The chooser's search view asks for ancestors to show each result's path.
+        query = 'fields=parent%2Cancestors&search=oil&limit=20&offset=0'
+        digest = digest_for_source('local', query)
+        response = self.client.get(f'/wagtail-transfer/api/chooser/pages/?{query}&digest={digest}')
+        self.assertEqual(response.status_code, 200)
+
+        items = json.loads(response.content)['items']
+        self.assertEqual([item['title'] for item in items], ['oil is great'])
+        self.assertEqual(
+            [ancestor['title'] for ancestor in items[0]['meta']['ancestors']],
+            ['Root', 'Home'],
+        )
 
 
 class TestModelsApi(TestCase):
