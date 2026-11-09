@@ -6,6 +6,7 @@ import PageChooserResult from './PageChooserResult';
 
 const propTypes = {
   displayChildNavigation: PropTypes.bool,
+  showPath: PropTypes.bool,
   restrictPageTypes: PropTypes.array,
   items: PropTypes.array,
   onPageChosen: PropTypes.func.isRequired,
@@ -19,6 +20,7 @@ const propTypes = {
 
 const defaultProps = {
   displayChildNavigation: false,
+  showPath: false,
   restrictPageTypes: [],
   items: [],
   pageTypes: {},
@@ -53,7 +55,8 @@ class PageChooserResultSet extends React.Component {
       parentPage,
       pageNumber,
       totalPages,
-      onChangePage
+      onChangePage,
+      showPath
     } = this.props;
 
     const results = items.map((page, i) => {
@@ -76,6 +79,7 @@ class PageChooserResultSet extends React.Component {
           onChoose={onChoose}
           onNavigate={handleNavigate}
           pageTypes={pageTypes}
+          showPath={showPath}
         />
       );
     });
