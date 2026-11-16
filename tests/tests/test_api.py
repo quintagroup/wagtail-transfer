@@ -64,6 +64,17 @@ class TestPageChooserSearchApi(TestCase):
             ['Root', 'Home'],
         )
 
+    def test_listing_includes_page_type_display_name(self):
+        # Sources can relabel a page's Type (e.g. "Alias") via Wagtail's own hook; the chooser shows it.
+        query = 'search=oil&limit=20&offset=0'
+        digest = digest_for_source('local', query)
+        with mock.patch.object(SponsoredPage, 'page_type_display_name', new_callable=mock.PropertyMock, return_value='Alias'):
+            response = self.client.get(f'/wagtail-transfer/api/chooser/pages/?{query}&digest={digest}')
+        self.assertEqual(response.status_code, 200)
+
+        items = json.loads(response.content)['items']
+        self.assertEqual([item['meta']['page_type_display_name'] for item in items], ['Alias'])
+
 
 class TestModelsApi(TestCase):
     fixtures = ['test.json']
